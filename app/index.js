@@ -17,7 +17,7 @@ function init() {
 
     term.on('data', function(data) {
         if (ws && ws.readyState === 1) {
-            ws.send("0" + utf8_to_b64(data));
+            ws.send('\0' + data);
         }
     });
 }
@@ -43,11 +43,11 @@ function connect() {
     } else {
         url = "wss://" + window.location.host + url;
     }
-    ws = new WebSocket(url, 'base64.channel.k8s.io');
+    ws = new WebSocket(url, 'channel.k8s.io');
     ws.onopen = function(event) {
         connected = true;
         alive = setInterval(function() {
-            ws.send("0");
+            ws.send('\0');
         }, 30 * 1000);
         term.reset();
     };
@@ -63,23 +63,20 @@ function connect() {
         }, 5000);
     };
     ws.onmessage = function(event) {
-        var data = event.data.slice(1);
-        switch(event.data[0]) {
-            case '1':
-            case '2':
-            case '3':
-                term.write(b64_to_utf8(data));
-                break;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var data = reader.result;
+            switch(data[0]) {
+                case '\0':
+                case '\1':
+                case '\2':
+                    console.log(term);
+                    term.write(data.slice(1));
+                    break;
+            }
         }
+        reader.readAsBinaryString(event.data);
     };
-}
-
-function utf8_to_b64(str) {
-    return btoa(unescape(encodeURIComponent(str)));
-}
-
-function b64_to_utf8(str) {
-    return decodeURIComponent(escape(atob(str)));
 }
 
 init();
