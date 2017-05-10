@@ -17,6 +17,7 @@ function init() {
 
     term.on('data', function(data) {
         if (ws && ws.readyState === 1) {
+            // should be ws.send('\0' + encode_utf8(data)) ?
             ws.send('\0' + data);
         }
     });
@@ -70,8 +71,7 @@ function connect() {
                 case '\0':
                 case '\1':
                 case '\2':
-                    console.log(term);
-                    term.write(data.slice(1));
+                    term.write(decode_utf8(data.slice(1)));
                     break;
             }
         }
@@ -81,6 +81,18 @@ function connect() {
 
 init();
 connect();
+
+function encode_utf8(s) {
+  return unescape(encodeURIComponent(s));
+}
+
+function decode_utf8(s) {
+  try {
+      return decodeURIComponent(escape(s));
+  } catch (e) {
+      return s;
+  }
+}
 
 window.onbeforeunload = function(e) {
     if(connected) {
